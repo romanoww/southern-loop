@@ -1403,7 +1403,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <p class="confirm-title">Save picks to GitHub</p>
     <p class="confirm-note">Commits <code>picks.json</code> to your repo so every device sees the same list.
       The token is stored only in this browser — it is never written into the page or the repo.</p>
-    <label class="fld"><span>Owner / username</span><input id="ghOwner" placeholder="stevenbrey"></label>
+    <label class="fld"><span>Owner / username</span><input id="ghOwner" placeholder="romanoww"></label>
     <label class="fld"><span>Repository</span><input id="ghRepo" placeholder="southern-loop"></label>
     <label class="fld"><span>Branch</span><input id="ghBranch" placeholder="main"></label>
     <label class="fld"><span>Fine-grained token — Contents: read &amp; write</span><input id="ghToken" type="password" placeholder="github_pat_…"></label>
@@ -1486,7 +1486,7 @@ function savePicks(){
 }
 
 /* ---- GitHub config (stored only in this browser, never in the file) ---- */
-let gh = {owner:'', repo:'', branch:'main', token:''};
+let gh = {owner:'romanoww', repo:'southern-loop', branch:'main', token:''};
 try { Object.assign(gh, JSON.parse(window.localStorage.getItem(CFG_KEY) || '{}')); } catch(e){}
 function saveCfg(){
   try { window.localStorage.setItem(CFG_KEY, JSON.stringify(gh)); } catch(e){}
