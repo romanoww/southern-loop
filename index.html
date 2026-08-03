@@ -1572,7 +1572,7 @@ async function pushToGitHub(){
   toast('Saving to GitHub…');
   try {
     let sha;
-    const cur = await fetch(`${api}?ref=${gh.branch}`, {headers:hdr});
+    const cur = await fetch(`${api}?ref=${gh.branch}`, {headers:hdr, cache:'no-store'});
     if(cur.ok) sha = (await cur.json()).sha;      // needed to update an existing file
     const body = {
       message: `Update picks (${Object.keys(picks).length} items)`,
