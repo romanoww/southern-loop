@@ -1959,7 +1959,7 @@ function select(name, source){
 
   if(leg && map && !mapDead){
     try {
-      map.flyTo([leg.lat, leg.lon], Math.min(Math.max(map.getZoom(), isMobile() ? 7 : 8), 13), {duration:.5});
+      map.flyTo([leg.lat, leg.lon], Math.min(Math.max(map.getZoom(), isMobile() ? 7 : 8), currentTab === 'sg' ? 11 : 13), {duration:.5});
     } catch(e){ /* map is optional; selection still works */ }
   }
 
@@ -2105,7 +2105,7 @@ function renderMap(){
     });
   }
 
-  map.fitBounds(L.latLngBounds(list.map(l => [l.lat, l.lon])), {padding: isMobile() ? [18,18] : [26,26], maxZoom: 13});
+  map.fitBounds(L.latLngBounds(list.map(l => [l.lat, l.lon])), {padding: isMobile() ? [18,18] : [26,26], maxZoom: currentTab === 'sg' ? 11 : 13});
   setTimeout(() => map.invalidateSize(), 60);
 
   if(!isListTab()){ document.getElementById('mapFab').innerHTML = ''; return; }
