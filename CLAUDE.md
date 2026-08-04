@@ -7,8 +7,8 @@ chat session that built it, so the reasoning behind the non-obvious decisions is
 
 ## What this is
 
-A single-file interactive trip planner for a 191-day family trip in 2027:
-**Singapore (5d) → New Zealand (77d) → Australia (74d) → Japan (35d)**.
+A single-file interactive trip planner for a 192-day family trip in 2027:
+**Singapore (5d) → New Zealand (78d) → Australia (74d) → Japan (35d)**.
 
 Travelling with a **2.5-year-old**, which drives most of the content decisions:
 hikes capped at ~3h and mostly under 2h, playgrounds and beaches favoured, and
@@ -18,7 +18,7 @@ alternative and a note saying why.
 Campervan for all of New Zealand, and Melbourne → Byron Bay in Australia.
 The other Australian stops and all of Japan except the Hokkaido loop are fixed accommodation.
 
-**Current contents:** 64 stops (1 SG / 31 NZ / 21 AU / 11 JP), 6 flights,
+**Current contents:** 65 stops (1 SG / 32 NZ / 21 AU / 11 JP), 6 flights,
 211 stays, 305 activities, 46 real routed road geometries.
 
 ---
