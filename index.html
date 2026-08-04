@@ -1806,6 +1806,15 @@ function allPicked(){
   return out;
 }
 
+function pickUrl(r){
+  if(r.kind === 'flight') return null;
+  const leg = (DATA[LEG_SOURCE[r.tab]] || []).find(l => l.name === r.legName);
+  if(!leg) return null;
+  const list = r.kind === 'stay' ? leg.camps : leg.activities;
+  const found = (list || []).find(x => x.name === r.item);
+  return found ? found.url : null;
+}
+
 function renderBookings(){
   const spine = document.getElementById('spine');
   const rows = allPicked();
@@ -1829,14 +1838,14 @@ function renderBookings(){
   const TABNAME = {sg:'Singapore', nz:'New Zealand', au:'Australia', jp:'Japan', fl:'Flights'};
   const group = (title, list, cls) => !list.length ? '' : `
     <p class="section-label">${title} · ${list.length}</p>
-    <div class="bk-list">${list.map(r => `
+    <div class="bk-list">${list.map(r => { const url = pickUrl(r); return `
       <div class="bk-row ${cls}">
         <span class="bk-ico">${r.kind==='stay'?'🏕':r.kind==='act'?'📍':'✈'}</span>
-        <span class="bk-txt"><b>${r.item}</b><em>${TABNAME[r.tab]||r.tab}${r.legName!=='flights'?' · '+r.legName:''}</em></span>
+        <span class="bk-txt">${url?`<a class="pin" href="${url}" data-label="${r.item.replace(/"/g,'&quot;')}"><b>${r.item}</b> <span class="pin-i">↗</span></a>`:`<b>${r.item}</b>`}<em>${TABNAME[r.tab]||r.tab}${r.legName!=='flights'?' · '+r.legName:''}</em></span>
         ${editMode
           ? `<button class="pick-btn" type="button" data-key="${r.key.replace(/"/g,'&quot;')}" aria-label="Change status">${PICK_ICON[r.state]}</button>`
           : `<span class="pick-badge ${r.state}" title="${STATE_LABEL[r.state]}">${PICK_ICON[r.state]}</span>`}
-      </div>`).join('')}</div>`;
+      </div>`; }).join('')}</div>`;
   spine.innerHTML = (editMode ? `<div class="bk-actions">
       <button type="button" class="save-btn ghost" onclick="exportPicks()">⬇ Export picks.json</button>
       <button type="button" class="save-btn ghost" onclick="document.getElementById('importFile').click()">⬆ Import</button>
