@@ -751,6 +751,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     border-bottom:3px solid transparent;
     display:flex; align-items:center; gap:7px;
   }
+  .tab-btn[hidden]{display:none;}
   .tabs::-webkit-scrollbar{display:none;}
   .tab-btn .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.45;}
   .tab-btn[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--ember);}
@@ -1052,6 +1053,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
     border-radius:8px; font-size:14px; background:var(--white); color:var(--ink);
     font-family:'IBM Plex Sans', -apple-system, system-ui, sans-serif;
   }
+  .fld-textarea{
+    width:100%; min-height:260px; padding:10px; border:1px solid var(--line);
+    border-radius:8px; font-size:14px; background:var(--white); color:var(--ink);
+    font-family:'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+    resize:vertical; line-height:1.6;
+  }
   .confirm-note code{background:var(--paper-dim); padding:1px 5px; border-radius:4px; font-size:11px;}
   .listPane{padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));}
   .confirm-sheet{
@@ -1169,6 +1176,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     border-radius:8px; font-size:14px; background:var(--white); color:var(--ink);
     font-family:'IBM Plex Sans', -apple-system, system-ui, sans-serif;
   }
+  .fld-textarea{min-height:320px;}
   .confirm-note code{background:var(--paper-dim); padding:1px 5px; border-radius:4px; font-size:11px;}
   .listPane{padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));}
   .confirm-sheet{align-items:center;}
@@ -1352,6 +1360,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <button class="tab-btn" role="tab" data-tab="fl" aria-selected="false"><span class="dot"></span>Flights</button>
     <button class="tab-btn" role="tab" data-tab="bk" aria-selected="false"><span class="dot"></span>Bookings</button>
     <button class="tab-btn" role="tab" data-tab="notes" aria-selected="false"><span class="dot"></span>Notes</button>
+    <button class="tab-btn" role="tab" data-tab="priv" aria-selected="false" id="privTabBtn" hidden><span class="dot"></span>🔒 Private</button>
   </nav>
 
   <div class="panes">
@@ -1392,6 +1401,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="spine" id="spine"></div>
       <div class="end-cap" id="endCap"></div>
       <div id="notesPane" hidden><h2 class="notes-title">Trip notes &amp; methodology</h2><p class="footnote">Each time slot shows the 5-year average with the actual observed range beneath it (every night of the stay × 2022–2026). “Recorded” is the coldest and hottest reading seen in that window — plan for those, not the average. Tongariro uses National Park Village (1043m), as the Whakapapa grid cell sits on the volcano slopes and read ~4°C too cold. Alpine valley lows may still read ~1°C warm. Stays are tagged 🔌 full hookup, 🚐 self-contained (Green Warrant required) or ⛺ basic/DOC, with facility codes: P power, D dump, S showers, L laundry, K kitchen, G playground, W wifi. Red flags mark sites needing advance booking or a ballot. Campsites and activities are suggestions, not bookings — availability, prices, seasonal closures and track conditions all change, so verify each one before you rely on it. Hikes are capped at ~3h and most are under 2h; “half day” entries are boat- or drive-based rather than walking. Campervan legs are all of New Zealand and Melbourne→Byron Bay; the Gold Coast, Noosa and Port Douglas stops assume fixed accommodation. From 7 June 2026 a Green Warrant (fixed toilet) is required to freedom camp where self-containment is mandated — confirm your rental carries one. Activities are tagged for camper access: no badge means you can drive the van to the trailhead, 🚐 tight flags a small or gravel car park, ⛴ means boat or shuttle only. Whale timing matters — the east-Australian humpback migration runs May to November and builds through June, so your earlier NSW stops are at the very start of it and several operators do not begin until ~1 June. Every campsite and activity name links to Google Maps — tap the name to open it, or 📍map beside the dates for the town itself. Map lines follow real routed roads. Drive times are estimates — routed distance combined with a speed model, validated against known real durations to within ~7% on average, and deliberately a little conservative since they don’t include stops. The winding Nelson Lakes–Tākaka and Punakaiki legs are the least certain. Tap “Drive” for live Google times. Japan: driving needs a 1949 Geneva Convention IDP — the ANWB issues both, so ask specifically for the 1949 booklet, not the 1968 Vienna one, which is invalid in Japan. Michi-no-eki roadside stations are free overnight parking but are rest stops, not campsites: one night, no tables or awnings. Not a booking tool.</p></div>
+      <div id="privPane" hidden>
+        <h2 class="notes-title">Private notes</h2>
+        <p class="footnote" style="margin-bottom:12px;">Stored only in this browser's local storage — never written to picks.json, never committed to the repo, never sent anywhere. Booking references, budget, passport/IDP numbers, anything you don't want sitting in git history. Clearing your browser data clears this too, so use the download button if you want a copy.</p>
+        <textarea id="privText" class="fld-textarea" rows="16" placeholder="Booking refs, confirmation numbers, budget, passport &amp; IDP details…"></textarea>
+        <div class="bk-actions" style="margin-top:10px;">
+          <button type="button" class="save-btn ghost" onclick="downloadPrivNotes()">⬇ Download a copy</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1466,6 +1483,7 @@ let mapDead = false;
 const STORE_KEY = 'southernLoop.picks.v1';
 const CFG_KEY   = 'southernLoop.gh.v1';
 const PICKS_FILE = 'picks.json';
+const PRIV_KEY  = 'southernLoop.private.v1';
 
 let picks = {};
 let picksUpdated = 0;        // ms epoch of the local copy
@@ -1497,6 +1515,31 @@ function saveCfg(){
   try { window.localStorage.setItem(CFG_KEY, JSON.stringify(gh)); } catch(e){}
 }
 const ghReady = () => !!(gh.owner && gh.repo && gh.token);
+
+/* ---- Private notes: local-storage only, gated on ghReady(), never synced,
+   never exported through picks.json, never pushed to GitHub or the repo. ---- */
+let privNotes = '';
+try { privNotes = window.localStorage.getItem(PRIV_KEY) || ''; } catch(e){}
+function savePrivNotes(text){
+  privNotes = text;
+  try { window.localStorage.setItem(PRIV_KEY, text); } catch(e){}
+}
+function downloadPrivNotes(){
+  const blob = new Blob([privNotes], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'private-notes.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  toast('Downloaded — this file is yours, it was never sent anywhere');
+}
+function updatePrivTabVisibility(){
+  const btn = document.getElementById('privTabBtn');
+  if(!btn) return;
+  const show = ghReady();
+  btn.hidden = !show;
+  if(!show && currentTab === 'priv') switchTab('nz');
+}
 
 /* Editor mode is implied by having a token, or forced with ?edit=1 (useful for
    setting up a new device before the token is pasted). Everyone else gets a
@@ -1871,9 +1914,19 @@ function renderWardrobe(){
 
 function renderSpine(){
   document.getElementById('notesPane').hidden = currentTab !== 'notes';
+  document.getElementById('privPane').hidden = currentTab !== 'priv';
   if(currentTab === 'notes'){
     document.getElementById('spine').innerHTML = '';
     document.getElementById('endCap').textContent = '';
+    return;
+  }
+  if(currentTab === 'priv'){
+    if(!ghReady()){ switchTab('nz'); return; }
+    const ta = document.getElementById('privText');
+    if(ta && ta.value !== privNotes) ta.value = privNotes;
+    document.getElementById('spine').innerHTML = '';
+    document.getElementById('endCap').textContent = '';
+    document.getElementById('countPill').textContent = 'local only';
     return;
   }
   if(currentTab === 'fl'){ renderFlights(); return; }
@@ -2216,6 +2269,7 @@ function toast(msg){
   toastTimer = setTimeout(()=>{ t.hidden = true; }, 3200);
 }
 function updateSaveBar(){
+  updatePrivTabVisibility();
   const bar = document.getElementById('saveBar');
   if(!bar) return;
   const n = Object.keys(picks).length;
@@ -2317,6 +2371,8 @@ function boot(){
   try { wireUnlock(); } catch(e){}
   const imp = document.getElementById('importFile');
   if(imp) imp.addEventListener('change', e => { if(e.target.files[0]) importPicks(e.target.files[0]); e.target.value=''; });
+  const priv = document.getElementById('privText');
+  if(priv) priv.addEventListener('input', e => savePrivNotes(e.target.value));
   loadRemotePicks();
 
   if(typeof L === 'undefined'){
