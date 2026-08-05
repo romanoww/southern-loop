@@ -12,8 +12,10 @@ A single self-contained HTML file plus one small data file. No build step, no se
 | `index.html` | The whole application — map library, trip data, photos and all logic are inlined |
 | `planner.html` | A bookmarkable shortcut into planner mode — see "Two modes" below |
 | `picks.json` | Your shortlist and bookings |
-| `private-notes.enc.json` | Encrypted passport/booking-ref/budget notes — see "Private notes" below. Not created until you save something in the Private tab |
 | `README.md` | This file |
+
+Passport/booking-ref/budget notes do **not** live in this repo — they live in a separate
+private repo, `southern-loop-private`. See "Private notes" below.
 
 ---
 
@@ -83,26 +85,38 @@ present, regardless of which link you opened.
 ## Private notes
 
 The **🔒 Private** tab holds passport/IDP numbers, booking confirmation codes and a
-budget — things that shouldn't sit in plain text in a public repo. This repo *is*
-public, so instead of hiding the file, its contents are encrypted in your browser
-before they're ever saved:
+budget — things that shouldn't sit in this repo, since it's public. Instead of hiding
+or encrypting a file here, private notes live in a **second, actually-private repo**,
+read and written only through GitHub's authenticated API — never served as a page, so
+GitHub's own permissions do the gating.
 
-1. First time you open the tab, pick a passphrase (8+ characters). This derives an
-   encryption key — nothing about the passphrase itself is stored anywhere.
-2. Fill in documents, booking references, budget, notes. Tap **Save to GitHub** to
-   commit the encrypted file to the repo, same as picks.
-3. On another device (or after closing the browser), opening the tab asks for the
-   passphrase again to unlock and decrypt.
+### One-time setup (do this once, as the repo owner)
 
-**There is no password reset.** If you forget the passphrase, that data is gone —
-there's no backdoor, by design. Use **⬇ Backup copy** after entering data to save a
-plaintext `.json` copy somewhere safe (a password manager, for instance) in case you
-need to recover it or move the passphrase itself somewhere durable.
+1. Create a new repo: **github.com/new** → name it `southern-loop-private` → set
+   **Private** → check **Add a README file** (so it has a default branch) → Create.
+2. **Settings → Collaborators** on that new repo → add your wife's GitHub username.
+3. Create a fine-grained token for it, same process as the main setup above, but:
+   - **Repository access:** only `southern-loop-private`
+   - **Contents:** Read and write
+4. Open the site's **Private** tab (you'll need planner mode on — see above) → it'll
+   ask you to connect a repo. Fill in owner, repo name, branch (`main`), and paste the
+   token.
 
-The GitHub token and the private-notes passphrase are two different secrets: the
-token controls who can *write* to the repo at all, the passphrase controls who can
-*read* the private notes even though the encrypted file itself is technically public
-like everything else here.
+Your wife does step 3 and 4 herself, on her own device, once she's been added as a
+collaborator in step 2 — her own token, scoped the same way, pasted into her own
+browser. Nothing about either token is ever shared or stored anywhere but each
+person's own browser.
+
+### Day to day
+
+Fill in documents, booking references, budget, notes, then tap **Save to GitHub** —
+same commit pattern as picks, just to the other repo. **⬇ Backup copy** downloads a
+local plaintext `.json` if you want your own copy outside GitHub. **Disconnect**
+clears the saved repo connection from this browser (useful on a shared device).
+
+If you ever lose access, it's an ordinary GitHub-account problem — recover your
+GitHub account or re-add yourself as a collaborator. There's no separate passphrase
+to forget.
 
 ---
 
