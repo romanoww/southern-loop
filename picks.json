@@ -1,5 +1,5 @@
 {
-  "updated": 1785866042821,
+  "updated": 1785948616338,
   "picks": {
     "nz|Mount Cook|stay|Glentanner Park Centre": "pick",
     "nz|Oamaru|stay|Oamaru TOP 10 Holiday Park": "pick",
@@ -10,6 +10,7 @@
     "nz|Timaru|stay|Timaru TOP 10 Holiday Park": "pick",
     "nz|Queenstown|stay|Queenstown Lakeview Holiday Park": "pick",
     "nz|Queenstown|stay|Arrowtown Holiday Park": "pick",
-    "nz|Wanaka|stay|Glendhu Bay Motor Camp": "pick"
+    "nz|Wanaka|stay|Glendhu Bay Motor Camp": "pick",
+    "fl|flights|flight|SQ 323": "booked"
   }
 }
