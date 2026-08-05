@@ -1059,6 +1059,20 @@ svg.leaflet-image-layer.leaflet-interactive path {
     font-family:'IBM Plex Sans', -apple-system, system-ui, sans-serif;
     resize:vertical; line-height:1.6;
   }
+  .priv-rows{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+  .priv-row{display:grid; grid-template-columns:1fr; gap:6px; align-items:center; margin-bottom:6px;}
+  .priv-row input{
+    width:100%; min-height:38px; padding:0 9px; border:1px solid var(--line);
+    border-radius:6px; font-size:13px; background:var(--white); color:var(--ink);
+    font-family:'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  }
+  .priv-del{
+    appearance:none; background:none; border:1px solid var(--line); border-radius:6px;
+    color:var(--muted); cursor:pointer; font-size:14px; min-width:36px; min-height:36px;
+    justify-self:end; width:auto;
+  }
+  .priv-budget-row{display:grid; grid-template-columns:1fr; gap:0;}
+  .priv-lock-status{font-size:11px; color:var(--muted); margin:2px 0 12px;}
   .confirm-note code{background:var(--paper-dim); padding:1px 5px; border-radius:4px; font-size:11px;}
   .listPane{padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));}
   .confirm-sheet{
@@ -1177,6 +1191,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
     font-family:'IBM Plex Sans', -apple-system, system-ui, sans-serif;
   }
   .fld-textarea{min-height:320px;}
+  .priv-row.doc{grid-template-columns:1.3fr 1fr 1fr auto;}
+  .priv-row.ref{grid-template-columns:1.3fr 1fr auto;}
+  .priv-budget-row{grid-template-columns:1fr 1fr 1fr; gap:8px;}
   .confirm-note code{background:var(--paper-dim); padding:1px 5px; border-radius:4px; font-size:11px;}
   .listPane{padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));}
   .confirm-sheet{align-items:center;}
@@ -1403,11 +1420,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div id="notesPane" hidden><h2 class="notes-title">Trip notes &amp; methodology</h2><p class="footnote">Each time slot shows the 5-year average with the actual observed range beneath it (every night of the stay × 2022–2026). “Recorded” is the coldest and hottest reading seen in that window — plan for those, not the average. Tongariro uses National Park Village (1043m), as the Whakapapa grid cell sits on the volcano slopes and read ~4°C too cold. Alpine valley lows may still read ~1°C warm. Stays are tagged 🔌 full hookup, 🚐 self-contained (Green Warrant required) or ⛺ basic/DOC, with facility codes: P power, D dump, S showers, L laundry, K kitchen, G playground, W wifi. Red flags mark sites needing advance booking or a ballot. Campsites and activities are suggestions, not bookings — availability, prices, seasonal closures and track conditions all change, so verify each one before you rely on it. Hikes are capped at ~3h and most are under 2h; “half day” entries are boat- or drive-based rather than walking. Campervan legs are all of New Zealand and Melbourne→Byron Bay; the Gold Coast, Noosa and Port Douglas stops assume fixed accommodation. From 7 June 2026 a Green Warrant (fixed toilet) is required to freedom camp where self-containment is mandated — confirm your rental carries one. Activities are tagged for camper access: no badge means you can drive the van to the trailhead, 🚐 tight flags a small or gravel car park, ⛴ means boat or shuttle only. Whale timing matters — the east-Australian humpback migration runs May to November and builds through June, so your earlier NSW stops are at the very start of it and several operators do not begin until ~1 June. Every campsite and activity name links to Google Maps — tap the name to open it, or 📍map beside the dates for the town itself. Map lines follow real routed roads. Drive times are estimates — routed distance combined with a speed model, validated against known real durations to within ~7% on average, and deliberately a little conservative since they don’t include stops. The winding Nelson Lakes–Tākaka and Punakaiki legs are the least certain. Tap “Drive” for live Google times. Japan: driving needs a 1949 Geneva Convention IDP — the ANWB issues both, so ask specifically for the 1949 booklet, not the 1968 Vienna one, which is invalid in Japan. Michi-no-eki roadside stations are free overnight parking but are rest stops, not campsites: one night, no tables or awnings. Not a booking tool.</p></div>
       <div id="privPane" hidden>
         <h2 class="notes-title">Private notes</h2>
-        <p class="footnote" style="margin-bottom:12px;">Stored only in this browser's local storage — never written to picks.json, never committed to the repo, never sent anywhere. Booking references, budget, passport/IDP numbers, anything you don't want sitting in git history. Clearing your browser data clears this too, so use the download button if you want a copy.</p>
-        <textarea id="privText" class="fld-textarea" rows="16" placeholder="Booking refs, confirmation numbers, budget, passport &amp; IDP details…"></textarea>
-        <div class="bk-actions" style="margin-top:10px;">
-          <button type="button" class="save-btn ghost" onclick="downloadPrivNotes()">⬇ Download a copy</button>
-        </div>
+        <p class="footnote" style="margin-bottom:12px;">Encrypted with a passphrase only you know before it's ever saved — the file that lands in the repo is unreadable without it. Booking references, budget, passport/IDP numbers. <b>There is no recovery if you forget the passphrase.</b></p>
+        <div id="privBody"></div>
       </div>
     </div>
   </div>
@@ -1483,7 +1497,7 @@ let mapDead = false;
 const STORE_KEY = 'southernLoop.picks.v1';
 const CFG_KEY   = 'southernLoop.gh.v1';
 const PICKS_FILE = 'picks.json';
-const PRIV_KEY  = 'southernLoop.private.v1';
+const PRIV_FILE  = 'private-notes.enc.json';
 
 let picks = {};
 let picksUpdated = 0;        // ms epoch of the local copy
@@ -1516,23 +1530,244 @@ function saveCfg(){
 }
 const ghReady = () => !!(gh.owner && gh.repo && gh.token);
 
-/* ---- Private notes: local-storage only, gated on ghReady(), never synced,
-   never exported through picks.json, never pushed to GitHub or the repo. ---- */
-let privNotes = '';
-try { privNotes = window.localStorage.getItem(PRIV_KEY) || ''; } catch(e){}
-function savePrivNotes(text){
-  privNotes = text;
-  try { window.localStorage.setItem(PRIV_KEY, text); } catch(e){}
+/* ---- Private notes: encrypted client-side with a passphrase only the owner
+   knows, then committed to the repo like picks.json. The repo is public, so
+   this is the only file whose *content* stays confidential — the ciphertext
+   blob is visible to anyone, the passphrase and the derived key never leave
+   this browser and are never written to disk in any form. ---- */
+let privState = 'idle';       // idle | loading | setup | locked | unlocked | error
+let privFetchStarted = false;
+let privRemote = null;        // {updated, salt, iv, ciphertext} as last fetched from the repo
+let privSaltB64 = null;
+let privKey = null;           // CryptoKey, in memory only, cleared on lock/reload
+let privData = null;          // decrypted structured object, in memory only
+let privDirty = false;
+let privLastSavedAt = 0;
+let privUnlockError = '';
+let privLoadError = '';
+
+function b64Encode(bytes){ return btoa(String.fromCharCode(...new Uint8Array(bytes))); }
+function b64Decode(str){ return Uint8Array.from(atob(str), c => c.charCodeAt(0)); }
+function escAttr(s){ return String(s == null ? '' : s).replace(/"/g,'&quot;'); }
+function escHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function privDeriveKey(passphrase, saltBytes){
+  const enc = new TextEncoder();
+  const material = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt:saltBytes, iterations:250000, hash:'SHA-256'},
+    material, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
+  );
 }
-function downloadPrivNotes(){
-  const blob = new Blob([privNotes], {type:'text/plain'});
+async function privEncrypt(key, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return {iv:b64Encode(iv), ciphertext:b64Encode(ct)};
+}
+async function privDecrypt(key, ivB64, ctB64){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64Decode(ivB64)}, key, b64Decode(ctB64));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function emptyPrivData(){
+  return {documents:[], refs:[], budget:{total:'', spent:'', currency:'NZD', notes:''}, notes:''};
+}
+function normalizePrivData(d){
+  d = d || {};
+  return {
+    documents: Array.isArray(d.documents) ? d.documents : [],
+    refs: Array.isArray(d.refs) ? d.refs : [],
+    budget: Object.assign({total:'', spent:'', currency:'NZD', notes:''}, d.budget || {}),
+    notes: typeof d.notes === 'string' ? d.notes : ''
+  };
+}
+
+async function ensurePrivLoaded(){
+  if(privFetchStarted) return;
+  privFetchStarted = true;
+  privState = 'loading';
+  renderPrivPane();
+  try {
+    const res = await fetch(PRIV_FILE + '?t=' + Date.now(), {cache:'no-store'});
+    if(res.status === 404){
+      privState = 'setup';
+    } else if(res.ok){
+      const data = await res.json();
+      if(data && data.ciphertext && data.salt && data.iv){ privRemote = data; privState = 'locked'; }
+      else { privState = 'setup'; }
+    } else {
+      privState = 'error'; privLoadError = 'The repo returned ' + res.status + '.';
+    }
+  } catch(e){
+    privState = 'error'; privLoadError = 'Could not reach the repo — check your connection and retry.';
+  }
+  renderPrivPane();
+}
+function privRetryLoad(){ privFetchStarted = false; privLoadError=''; ensurePrivLoaded(); }
+
+async function setupPriv(pass1, pass2){
+  if(!pass1 || pass1.length < 8){ privUnlockError = 'Use at least 8 characters.'; renderPrivPane(); return; }
+  if(pass1 !== pass2){ privUnlockError = 'Passphrases do not match.'; renderPrivPane(); return; }
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  privSaltB64 = b64Encode(salt);
+  privKey = await privDeriveKey(pass1, salt);
+  privData = emptyPrivData();
+  privUnlockError = '';
+  privDirty = true;
+  privState = 'unlocked';
+  renderPrivPane();
+  toast('Passphrase set — remember it, there is no recovery. Tap Save to commit it, encrypted, to the repo.');
+}
+async function unlockPriv(pass){
+  if(!pass){ privUnlockError = 'Enter your passphrase.'; renderPrivPane(); return; }
+  try {
+    const salt = b64Decode(privRemote.salt);
+    const key = await privDeriveKey(pass, salt);
+    const data = await privDecrypt(key, privRemote.iv, privRemote.ciphertext);
+    privKey = key;
+    privSaltB64 = privRemote.salt;
+    privData = normalizePrivData(data);
+    privLastSavedAt = privRemote.updated || 0;
+    privUnlockError = '';
+    privState = 'unlocked';
+  } catch(e){
+    privUnlockError = 'Wrong passphrase, or the data is corrupted.';
+  }
+  renderPrivPane();
+}
+function lockPriv(){
+  if(privDirty && !confirm('Discard unsaved changes?')) return;
+  privKey = null; privData = null; privDirty = false; privUnlockError = '';
+  privState = privRemote ? 'locked' : 'setup';
+  renderPrivPane();
+}
+function privMarkDirty(){
+  privDirty = true;
+  const el = document.getElementById('privSaveStatus');
+  if(el) el.textContent = 'Unsaved changes';
+}
+function privAddRow(section){
+  privData[section].push(section === 'documents' ? {label:'', number:'', expiry:''} : {label:'', code:''});
+  privDirty = true;
+  renderPrivPane();
+}
+function privRemoveRow(section, i){
+  privData[section].splice(i, 1);
+  privDirty = true;
+  renderPrivPane();
+}
+async function savePrivToGitHub(){
+  if(!ghReady()){ openSettings(); return; }
+  if(!privKey || !privData) return;
+  toast('Encrypting and saving…');
+  try {
+    const enc = await privEncrypt(privKey, privData);
+    const payload = {updated:Date.now(), salt:privSaltB64, iv:enc.iv, ciphertext:enc.ciphertext};
+    const api = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${PRIV_FILE}`;
+    const hdr = {'Authorization':'Bearer '+gh.token, 'Accept':'application/vnd.github+json'};
+    let sha;
+    const cur = await fetch(`${api}?ref=${gh.branch}`, {headers:hdr, cache:'no-store'});
+    if(cur.ok) sha = (await cur.json()).sha;
+    const body = {
+      message: 'Update private notes (encrypted)',
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2)))),
+      branch: gh.branch
+    };
+    if(sha) body.sha = sha;
+    const res = await fetch(api, {method:'PUT', headers:{...hdr,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      toast('GitHub rejected it: ' + (err.message || res.status));
+      return;
+    }
+    privRemote = payload;
+    privDirty = false;
+    privLastSavedAt = payload.updated;
+    const el = document.getElementById('privSaveStatus');
+    if(el) el.textContent = 'Saved ' + new Date(payload.updated).toLocaleString();
+    toast('Saved to GitHub, encrypted — live in about a minute');
+  } catch(e){ toast('Could not reach GitHub — try again on signal'); }
+}
+function downloadPrivBackup(){
+  if(!privData) return;
+  const blob = new Blob([JSON.stringify(privData, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'private-notes.txt';
+  a.download = 'private-notes-backup.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
-  toast('Downloaded — this file is yours, it was never sent anywhere');
+  toast('Downloaded as plaintext — keep this copy somewhere safe');
 }
+
+function renderPrivPane(){
+  const body = document.getElementById('privBody');
+  if(!body) return;
+  if(privState === 'loading' || privState === 'idle'){
+    body.innerHTML = `<p class="none">Checking the repo…</p>`;
+    return;
+  }
+  if(privState === 'error'){
+    body.innerHTML = `<p class="warn">${escHtml(privLoadError)}</p>
+      <button type="button" class="save-btn ghost" onclick="privRetryLoad()">Retry</button>`;
+    return;
+  }
+  if(privState === 'setup'){
+    body.innerHTML = `
+      <p class="section-label">No private notes saved yet</p>
+      ${privUnlockError ? `<p class="warn">${escHtml(privUnlockError)}</p>` : ''}
+      <label class="fld"><span>New passphrase</span><input id="privPass1" type="password" autocomplete="new-password"></label>
+      <label class="fld"><span>Confirm passphrase</span><input id="privPass2" type="password" autocomplete="new-password"></label>
+      <button type="button" class="save-btn" onclick="setupPriv(document.getElementById('privPass1').value, document.getElementById('privPass2').value)">Set passphrase &amp; start</button>`;
+    return;
+  }
+  if(privState === 'locked'){
+    body.innerHTML = `
+      <p class="section-label">Enter your passphrase to unlock</p>
+      ${privUnlockError ? `<p class="warn">${escHtml(privUnlockError)}</p>` : ''}
+      <label class="fld"><span>Passphrase</span><input id="privPass1" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter') unlockPriv(this.value)"></label>
+      <button type="button" class="save-btn" onclick="unlockPriv(document.getElementById('privPass1').value)">Unlock</button>`;
+    return;
+  }
+  const d = privData;
+  body.innerHTML = `
+    <div class="bk-actions">
+      <button type="button" class="save-btn" onclick="savePrivToGitHub()">💾 Save to GitHub</button>
+      <button type="button" class="save-btn ghost" onclick="downloadPrivBackup()">⬇ Backup copy</button>
+      <button type="button" class="save-btn ghost" onclick="lockPriv()">🔒 Lock</button>
+    </div>
+    <p class="priv-lock-status" id="privSaveStatus">${privDirty ? 'Unsaved changes' : (privLastSavedAt ? 'Saved ' + new Date(privLastSavedAt).toLocaleString() : 'Not yet saved to the repo')}</p>
+
+    <p class="section-label">Documents</p>
+    <div class="priv-rows">${d.documents.map((doc,i) => `
+      <div class="priv-row doc">
+        <input placeholder="e.g. Steven — passport" value="${escAttr(doc.label)}" oninput="privData.documents[${i}].label=this.value; privMarkDirty()">
+        <input placeholder="Number" value="${escAttr(doc.number)}" oninput="privData.documents[${i}].number=this.value; privMarkDirty()">
+        <input placeholder="Expiry" value="${escAttr(doc.expiry)}" oninput="privData.documents[${i}].expiry=this.value; privMarkDirty()">
+        <button type="button" class="priv-del" onclick="privRemoveRow('documents',${i})" aria-label="Remove">✕</button>
+      </div>`).join('') || '<p class="none">None yet.</p>'}</div>
+    <div class="bk-actions"><button type="button" class="save-btn ghost" onclick="privAddRow('documents')">+ Add document</button></div>
+
+    <p class="section-label" style="margin-top:16px;">Booking references</p>
+    <div class="priv-rows">${d.refs.map((r,i) => `
+      <div class="priv-row ref">
+        <input placeholder="e.g. SQ 323" value="${escAttr(r.label)}" oninput="privData.refs[${i}].label=this.value; privMarkDirty()">
+        <input placeholder="Confirmation code" value="${escAttr(r.code)}" oninput="privData.refs[${i}].code=this.value; privMarkDirty()">
+        <button type="button" class="priv-del" onclick="privRemoveRow('refs',${i})" aria-label="Remove">✕</button>
+      </div>`).join('') || '<p class="none">None yet.</p>'}</div>
+    <div class="bk-actions"><button type="button" class="save-btn ghost" onclick="privAddRow('refs')">+ Add reference</button></div>
+
+    <p class="section-label" style="margin-top:16px;">Budget</p>
+    <div class="priv-budget-row">
+      <label class="fld"><span>Total</span><input value="${escAttr(d.budget.total)}" oninput="privData.budget.total=this.value; privMarkDirty()"></label>
+      <label class="fld"><span>Spent so far</span><input value="${escAttr(d.budget.spent)}" oninput="privData.budget.spent=this.value; privMarkDirty()"></label>
+      <label class="fld"><span>Currency</span><input value="${escAttr(d.budget.currency)}" oninput="privData.budget.currency=this.value; privMarkDirty()"></label>
+    </div>
+    <textarea class="fld-textarea" style="min-height:80px;" placeholder="Budget notes" oninput="privData.budget.notes=this.value; privMarkDirty()">${escHtml(d.budget.notes)}</textarea>
+
+    <p class="section-label" style="margin-top:16px;">Other notes</p>
+    <textarea class="fld-textarea" placeholder="Anything else…" oninput="privData.notes=this.value; privMarkDirty()">${escHtml(d.notes)}</textarea>
+  `;
+}
+
 function updatePrivTabVisibility(){
   const btn = document.getElementById('privTabBtn');
   if(!btn) return;
@@ -1922,11 +2157,10 @@ function renderSpine(){
   }
   if(currentTab === 'priv'){
     if(!ghReady()){ switchTab('nz'); return; }
-    const ta = document.getElementById('privText');
-    if(ta && ta.value !== privNotes) ta.value = privNotes;
+    ensurePrivLoaded();
     document.getElementById('spine').innerHTML = '';
     document.getElementById('endCap').textContent = '';
-    document.getElementById('countPill').textContent = 'local only';
+    document.getElementById('countPill').textContent = 'encrypted';
     return;
   }
   if(currentTab === 'fl'){ renderFlights(); return; }
@@ -2371,8 +2605,6 @@ function boot(){
   try { wireUnlock(); } catch(e){}
   const imp = document.getElementById('importFile');
   if(imp) imp.addEventListener('change', e => { if(e.target.files[0]) importPicks(e.target.files[0]); e.target.value=''; });
-  const priv = document.getElementById('privText');
-  if(priv) priv.addEventListener('input', e => savePrivNotes(e.target.value));
   loadRemotePicks();
 
   if(typeof L === 'undefined'){

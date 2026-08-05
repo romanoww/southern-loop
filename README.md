@@ -11,7 +11,8 @@ A single self-contained HTML file plus one small data file. No build step, no se
 |---|---|
 | `index.html` | The whole application — map library, trip data, photos and all logic are inlined |
 | `planner.html` | A bookmarkable shortcut into planner mode — see "Two modes" below |
-| `picks.json` | Your shortlist and bookings. The **only** file that changes as you plan |
+| `picks.json` | Your shortlist and bookings |
+| `private-notes.enc.json` | Encrypted passport/booking-ref/budget notes — see "Private notes" below. Not created until you save something in the Private tab |
 | `README.md` | This file |
 
 ---
@@ -76,6 +77,32 @@ browser. A viewer who forces planner mode can shuffle badges in their own
 browser and change nothing else. Note that this also means `planner.html`
 doesn't gate the **Private** tab — that one only appears once a real token is
 present, regardless of which link you opened.
+
+---
+
+## Private notes
+
+The **🔒 Private** tab holds passport/IDP numbers, booking confirmation codes and a
+budget — things that shouldn't sit in plain text in a public repo. This repo *is*
+public, so instead of hiding the file, its contents are encrypted in your browser
+before they're ever saved:
+
+1. First time you open the tab, pick a passphrase (8+ characters). This derives an
+   encryption key — nothing about the passphrase itself is stored anywhere.
+2. Fill in documents, booking references, budget, notes. Tap **Save to GitHub** to
+   commit the encrypted file to the repo, same as picks.
+3. On another device (or after closing the browser), opening the tab asks for the
+   passphrase again to unlock and decrypt.
+
+**There is no password reset.** If you forget the passphrase, that data is gone —
+there's no backdoor, by design. Use **⬇ Backup copy** after entering data to save a
+plaintext `.json` copy somewhere safe (a password manager, for instance) in case you
+need to recover it or move the passphrase itself somewhere durable.
+
+The GitHub token and the private-notes passphrase are two different secrets: the
+token controls who can *write* to the repo at all, the passphrase controls who can
+*read* the private notes even though the encrypted file itself is technically public
+like everything else here.
 
 ---
 
