@@ -27,6 +27,7 @@ The other Australian stops and all of Japan except the Hokkaido loop are fixed a
 
 ```
 index.html    the entire app — Leaflet, trip data, logic, all inlined
+planner.html  tiny redirect stub — bookmarkable shortcut into planner mode, no credentials
 picks.json    shortlist/booking state; the only file that changes during planning
 README.md     user-facing instructions
 CLAUDE.md     this file
@@ -129,9 +130,14 @@ viewport resizes as the address bar hides.
 
 ### Viewer vs planner
 
-One file, two modes. Planner unlocks when a GitHub token is present, or via `?edit=1`, or by
-tapping the page title three times. This is **presentation only** — the actual protection is
-that repo writes need the token, which lives only in the user's browser and is never in the file.
+One file, two modes. Planner unlocks when a GitHub token is present, or via `?edit=1` (or
+`planner.html`, which just sets the same flag and redirects), or by tapping the page title
+three times. This is **presentation only** — the actual protection is that repo writes need
+the token, which lives only in the user's browser and is never in the file. `planner.html`
+carries no credentials itself; it exists so the owner has a clean bookmark instead of typing
+`?edit=1`. It does **not** gate the Private tab — that's tied to `ghReady()` (a real token),
+not this flag, since a viewer forcing planner mode via any of these three routes still has no
+token and must not see it.
 
 ### Sync
 

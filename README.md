@@ -10,6 +10,7 @@ A single self-contained HTML file plus one small data file. No build step, no se
 | File | Purpose |
 |---|---|
 | `index.html` | The whole application — map library, trip data, photos and all logic are inlined |
+| `planner.html` | A bookmarkable shortcut into planner mode — see "Two modes" below |
 | `picks.json` | Your shortlist and bookings. The **only** file that changes as you plan |
 | `README.md` | This file |
 
@@ -57,15 +58,24 @@ affect the repo.
 It switches automatically once a GitHub token is configured on that device. To
 unlock it on a fresh device *before* pasting the token, either:
 
+- open **`planner.html`** instead of `index.html` — bookmark this one for yourself,
 - open the site with `?edit=1` appended to the URL, or
 - **tap the page title three times** — handy on a phone.
 
 `?edit=0` (or tapping the title three times again) returns to viewer mode.
+`planner.html` itself carries no credentials — it only sets the same local
+display flag `?edit=1` does, then forwards to `index.html`. Once you've pasted
+your token on a device, planner mode comes back on its own from then on, since
+that's driven by the token, not this flag — `planner.html` mainly matters for
+first-time setup or a link you keep for yourself alongside the plain one you
+share.
 
 This is a presentation choice, not a security boundary — the real protection is
 that writing to the repo requires the token, which only ever lives in your
 browser. A viewer who forces planner mode can shuffle badges in their own
-browser and change nothing else.
+browser and change nothing else. Note that this also means `planner.html`
+doesn't gate the **Private** tab — that one only appears once a real token is
+present, regardless of which link you opened.
 
 ---
 

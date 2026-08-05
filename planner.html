@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>The Southern Loop — Planner</title>
+<style>
+  body{font-family:-apple-system,system-ui,sans-serif;background:#16302B;color:#F4EFE6;
+    display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center;}
+  a{color:#F4EFE6;}
+</style>
+</head>
+<body>
+<p>Opening planner mode… <a href="index.html?edit=1">continue</a></p>
+<script>
+  // Bookmark this page instead of appending ?edit=1 to the main link each time.
+  // It only flips a local display flag — it does not carry or grant your GitHub
+  // token, which is still pasted once into Settings and stays in that browser.
+  try { window.localStorage.setItem('southernLoop.edit.v1', '1'); } catch(e){}
+  location.replace('index.html');
+</script>
+</body>
+</html>
