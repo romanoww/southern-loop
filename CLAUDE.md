@@ -182,10 +182,13 @@ doesn't exist yet) → `error` (auth failure or network issue — shows a specif
 collaborator" message rather than silently treating it as "no data"). Saving reuses the
 GET-SHA-then-PUT pattern from `pushToGitHub()`, against `ghPriv`'s repo instead of the main one.
 
-Structured fields: `documents` (passport/IDP — label, number, expiry), `refs` (booking
-references — label, code), `budget` (total/spent/currency/notes), and a freeform `notes`
-catch-all. Row inputs use inline `oninput` handlers that mutate `privData` directly rather than
-re-rendering on every keystroke — a full re-render on each character would drop input focus.
+Structured fields: `documents` (passport/IDP — label, number, expiry), `bookings` (reference,
+description, startDate, endDate, price, currency, refund), `budget` (total/spent/currency/
+notes), and a freeform `notes` catch-all. `bookings` replaced an earlier, thinner `refs` shape
+(label/code) — `normalizePrivData()` migrates any old-shape data it finds on load, since a real
+entry already existed in the wild before the richer shape shipped. Row inputs use inline
+`oninput` handlers that mutate `privData` directly rather than re-rendering on every keystroke —
+a full re-render on each character would drop input focus.
 
 ---
 

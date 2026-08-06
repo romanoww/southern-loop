@@ -1073,6 +1073,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
   }
   .priv-budget-row{display:grid; grid-template-columns:1fr; gap:0;}
   .priv-lock-status{font-size:11px; color:var(--muted); margin:2px 0 12px;}
+  .priv-booking{border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:10px;}
+  .priv-booking-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .priv-booking-num{
+    font-family:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size:10px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+  }
+  .priv-booking-grid{display:grid; grid-template-columns:1fr; gap:0;}
   .confirm-note code{background:var(--paper-dim); padding:1px 5px; border-radius:4px; font-size:11px;}
   .listPane{padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));}
   .confirm-sheet{
@@ -1194,6 +1201,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .priv-row.doc{grid-template-columns:1.3fr 1fr 1fr auto;}
   .priv-row.ref{grid-template-columns:1.3fr 1fr auto;}
   .priv-budget-row{grid-template-columns:1fr 1fr 1fr; gap:8px;}
+  .priv-booking-grid{grid-template-columns:1fr 1fr 1fr; gap:8px;}
   .confirm-note code{background:var(--paper-dim); padding:1px 5px; border-radius:4px; font-size:11px;}
   .listPane{padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));}
   .confirm-sheet{align-items:center;}
@@ -1420,7 +1428,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div id="notesPane" hidden><h2 class="notes-title">Trip notes &amp; methodology</h2><p class="footnote">Each time slot shows the 5-year average with the actual observed range beneath it (every night of the stay × 2022–2026). “Recorded” is the coldest and hottest reading seen in that window — plan for those, not the average. Tongariro uses National Park Village (1043m), as the Whakapapa grid cell sits on the volcano slopes and read ~4°C too cold. Alpine valley lows may still read ~1°C warm. Stays are tagged 🔌 full hookup, 🚐 self-contained (Green Warrant required) or ⛺ basic/DOC, with facility codes: P power, D dump, S showers, L laundry, K kitchen, G playground, W wifi. Red flags mark sites needing advance booking or a ballot. Campsites and activities are suggestions, not bookings — availability, prices, seasonal closures and track conditions all change, so verify each one before you rely on it. Hikes are capped at ~3h and most are under 2h; “half day” entries are boat- or drive-based rather than walking. Campervan legs are all of New Zealand and Melbourne→Byron Bay; the Gold Coast, Noosa and Port Douglas stops assume fixed accommodation. From 7 June 2026 a Green Warrant (fixed toilet) is required to freedom camp where self-containment is mandated — confirm your rental carries one. Activities are tagged for camper access: no badge means you can drive the van to the trailhead, 🚐 tight flags a small or gravel car park, ⛴ means boat or shuttle only. Whale timing matters — the east-Australian humpback migration runs May to November and builds through June, so your earlier NSW stops are at the very start of it and several operators do not begin until ~1 June. Every campsite and activity name links to Google Maps — tap the name to open it, or 📍map beside the dates for the town itself. Map lines follow real routed roads. Drive times are estimates — routed distance combined with a speed model, validated against known real durations to within ~7% on average, and deliberately a little conservative since they don’t include stops. The winding Nelson Lakes–Tākaka and Punakaiki legs are the least certain. Tap “Drive” for live Google times. Japan: driving needs a 1949 Geneva Convention IDP — the ANWB issues both, so ask specifically for the 1949 booklet, not the 1968 Vienna one, which is invalid in Japan. Michi-no-eki roadside stations are free overnight parking but are rest stops, not campsites: one night, no tables or awnings. Not a booking tool.</p></div>
       <div id="privPane" hidden>
         <h2 class="notes-title">Private notes</h2>
-        <p class="footnote" style="margin-bottom:12px;">Booking references, budget, passport/IDP numbers. Saved to a separate <b>private</b> GitHub repo, not this one — only accessible to accounts added as collaborators there, each with their own token.</p>
+        <p class="footnote" style="margin-bottom:12px;">Bookings, budget, passport/IDP numbers. Saved to a separate <b>private</b> GitHub repo, not this one — only accessible to accounts with a token scoped to it.</p>
         <div id="privBody"></div>
       </div>
     </div>
@@ -1551,7 +1559,7 @@ const ghPrivReady = () => !!(ghPriv.owner && ghPriv.repo && ghPriv.token);
 
 let privState = 'idle';       // idle | loading | setup | ready | error
 let privFetchStarted = false;
-let privData = null;          // {documents, refs, budget, notes} once loaded
+let privData = null;          // {documents, bookings, budget, notes} once loaded
 let privSha = null;           // blob sha of the last-fetched/last-saved file, for the next PUT
 let privDirty = false;
 let privLastSavedAt = 0;
@@ -1563,14 +1571,21 @@ function escHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').rep
 function b64ToUtf8(b64){ return decodeURIComponent(escape(atob(b64.replace(/\s/g,'')))); }
 function utf8ToB64(str){ return btoa(unescape(encodeURIComponent(str))); }
 
+function emptyBooking(){
+  return {reference:'', description:'', startDate:'', endDate:'', price:'', currency:'NZD', refund:''};
+}
 function emptyPrivData(){
-  return {documents:[], refs:[], budget:{total:'', spent:'', currency:'NZD', notes:''}, notes:''};
+  return {documents:[], bookings:[], budget:{total:'', spent:'', currency:'NZD', notes:''}, notes:''};
 }
 function normalizePrivData(d){
   d = d || {};
+  // migrate the older {label, code} "refs" shape (pre-dates the structured booking table)
+  const bookings = Array.isArray(d.bookings) ? d.bookings
+    : Array.isArray(d.refs) ? d.refs.map(r => Object.assign(emptyBooking(), {description: r.label || '', reference: r.code || ''}))
+    : [];
   return {
     documents: Array.isArray(d.documents) ? d.documents : [],
-    refs: Array.isArray(d.refs) ? d.refs : [],
+    bookings: bookings.map(b => Object.assign(emptyBooking(), b)),
     budget: Object.assign({total:'', spent:'', currency:'NZD', notes:''}, d.budget || {}),
     notes: typeof d.notes === 'string' ? d.notes : ''
   };
@@ -1640,7 +1655,7 @@ function privMarkDirty(){
   if(el) el.textContent = 'Unsaved changes';
 }
 function privAddRow(section){
-  privData[section].push(section === 'documents' ? {label:'', number:'', expiry:''} : {label:'', code:''});
+  privData[section].push(section === 'documents' ? {label:'', number:'', expiry:''} : emptyBooking());
   privDirty = true;
   renderPrivPane();
 }
@@ -1731,14 +1746,24 @@ function renderPrivPane(){
       </div>`).join('') || '<p class="none">None yet.</p>'}</div>
     <div class="bk-actions"><button type="button" class="save-btn ghost" onclick="privAddRow('documents')">+ Add document</button></div>
 
-    <p class="section-label" style="margin-top:16px;">Booking references</p>
-    <div class="priv-rows">${d.refs.map((r,i) => `
-      <div class="priv-row ref">
-        <input placeholder="e.g. SQ 323" value="${escAttr(r.label)}" oninput="privData.refs[${i}].label=this.value; privMarkDirty()">
-        <input placeholder="Confirmation code" value="${escAttr(r.code)}" oninput="privData.refs[${i}].code=this.value; privMarkDirty()">
-        <button type="button" class="priv-del" onclick="privRemoveRow('refs',${i})" aria-label="Remove">✕</button>
+    <p class="section-label" style="margin-top:16px;">Bookings</p>
+    <div class="priv-rows">${d.bookings.map((b,i) => `
+      <div class="priv-booking">
+        <div class="priv-booking-head">
+          <span class="priv-booking-num">Booking ${i+1}</span>
+          <button type="button" class="priv-del" onclick="privRemoveRow('bookings',${i})" aria-label="Remove">✕</button>
+        </div>
+        <div class="priv-booking-grid">
+          <label class="fld"><span>Booking reference</span><input value="${escAttr(b.reference)}" oninput="privData.bookings[${i}].reference=this.value; privMarkDirty()"></label>
+          <label class="fld"><span>Description</span><input placeholder="e.g. SQ 323, or Timaru TOP 10 Holiday Park" value="${escAttr(b.description)}" oninput="privData.bookings[${i}].description=this.value; privMarkDirty()"></label>
+          <label class="fld"><span>Start date</span><input type="date" value="${escAttr(b.startDate)}" oninput="privData.bookings[${i}].startDate=this.value; privMarkDirty()"></label>
+          <label class="fld"><span>End date</span><input type="date" value="${escAttr(b.endDate)}" oninput="privData.bookings[${i}].endDate=this.value; privMarkDirty()"></label>
+          <label class="fld"><span>Price</span><input value="${escAttr(b.price)}" oninput="privData.bookings[${i}].price=this.value; privMarkDirty()"></label>
+          <label class="fld"><span>Currency</span><input value="${escAttr(b.currency)}" oninput="privData.bookings[${i}].currency=this.value; privMarkDirty()"></label>
+        </div>
+        <label class="fld"><span>Refund options</span><input placeholder="e.g. Free cancellation until 14 days before" value="${escAttr(b.refund)}" oninput="privData.bookings[${i}].refund=this.value; privMarkDirty()"></label>
       </div>`).join('') || '<p class="none">None yet.</p>'}</div>
-    <div class="bk-actions"><button type="button" class="save-btn ghost" onclick="privAddRow('refs')">+ Add reference</button></div>
+    <div class="bk-actions"><button type="button" class="save-btn ghost" onclick="privAddRow('bookings')">+ Add booking</button></div>
 
     <p class="section-label" style="margin-top:16px;">Budget</p>
     <div class="priv-budget-row">
