@@ -76,9 +76,9 @@ share.
 This is a presentation choice, not a security boundary — the real protection is
 that writing to the repo requires the token, which only ever lives in your
 browser. A viewer who forces planner mode can shuffle badges in their own
-browser and change nothing else. Note that this also means `planner.html`
-doesn't gate the **Private** tab — that one only appears once a real token is
-present, regardless of which link you opened.
+browser and change nothing else. Forcing planner mode also reveals the
+**Private** tab, but that's fine — its real protection is a separate repo with
+its own access control, not this flag. See "Private notes" below.
 
 ---
 
@@ -90,22 +90,24 @@ or encrypting a file here, private notes live in a **second, actually-private re
 read and written only through GitHub's authenticated API — never served as a page, so
 GitHub's own permissions do the gating.
 
-### One-time setup (do this once, as the repo owner)
+### One-time setup
 
 1. Create a new repo: **github.com/new** → name it `southern-loop-private` → set
    **Private** → check **Add a README file** (so it has a default branch) → Create.
-2. **Settings → Collaborators** on that new repo → add your wife's GitHub username.
-3. Create a fine-grained token for it, same process as the main setup above, but:
-   - **Repository access:** only `southern-loop-private`
-   - **Contents:** Read and write
-4. Open the site's **Private** tab (you'll need planner mode on — see above) → it'll
+2. Create a fine-grained token scoped to it — either a fresh one, or edit your
+   existing `southern-loop` token (**Settings → Developer settings → Fine-grained
+   tokens**) and add `southern-loop-private` to its **Repository access** list.
+   Either way, make sure **Contents: Read and write** is set for it.
+3. Open the site's **Private** tab (you'll need planner mode on — see above) → it'll
    ask you to connect a repo. Fill in owner, repo name, branch (`main`), and paste the
    token.
 
-Your wife does step 3 and 4 herself, on her own device, once she's been added as a
-collaborator in step 2 — her own token, scoped the same way, pasted into her own
-browser. Nothing about either token is ever shared or stored anywhere but each
-person's own browser.
+If it's just the two of you sharing one GitHub account (no separate login for your
+wife), she uses the same token on her own device — share it via 1Password or
+whatever you'd use for any other shared credential. If she ever gets her own GitHub
+account later, the cleaner setup is to add her as a collaborator on
+`southern-loop-private` and give her a token scoped only to that repo, so revoking
+access doesn't touch anything else.
 
 ### Day to day
 

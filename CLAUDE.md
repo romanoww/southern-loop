@@ -138,9 +138,8 @@ One file, two modes. Planner unlocks when a GitHub token is present, or via `?ed
 three times. This is **presentation only** — the actual protection is that repo writes need
 the token, which lives only in the user's browser and is never in the file. `planner.html`
 carries no credentials itself; it exists so the owner has a clean bookmark instead of typing
-`?edit=1`. It does **not** gate the Private tab — that's tied to `ghReady()` (a real token),
-not this flag, since a viewer forcing planner mode via any of these three routes still has no
-token and must not see it.
+`?edit=1`. The Private tab is visible whenever `editMode || ghPrivReady()` — see "Private tab"
+below for why that's looser than the picks-sync gating and why that's fine.
 
 ### Sync
 
@@ -161,11 +160,14 @@ so that replaced it.
 `private-notes.json` in **plain JSON** — no encryption needed, because GitHub's own repo
 permissions do the access control. It has no Pages site and is never fetched as a static file;
 every read and write goes through the authenticated Contents API
-(`api.github.com/repos/{owner}/{repo}/contents/...`), gated by a token whose holder must be a
-collaborator on that repo. Steven and his wife each add their own fine-grained PAT, scoped only
-to `southern-loop-private`, in their own browser — same one-token-per-device model as `gh`
-(the main config), just a second, independent `ghPriv` config (`southernLoop.ghpriv.v1`)
-pointed at a different repo. Losing a token is a GitHub-account problem now, recoverable the
+(`api.github.com/repos/{owner}/{repo}/contents/...`), gated by a token scoped to that repo.
+In practice Steven and his wife share one GitHub account and one token (pasted into both of
+their browsers, e.g. via 1Password) rather than each having a separate login — that's fine,
+since the token only needs to be scoped to this one low-stakes repo. The app doesn't care
+either way: `ghPriv` (`southernLoop.ghpriv.v1`) is just a second, independent config alongside
+`gh` (the main one), pointed at a different repo, same one-token-per-device shape. If a second
+GitHub account ever enters the picture, the cleaner path is a collaborator + her own token
+scoped only to this repo. Losing access is a GitHub-account problem either way, recoverable the
 normal way — not a self-inflicted, unrecoverable one.
 
 **Tab visibility** is `editMode || ghPrivReady()` — looser than the encrypted version was,
