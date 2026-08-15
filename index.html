@@ -1914,13 +1914,13 @@ function addDays(iso, n){
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 }
 // leg.depart is stored as the date of the last night at a stop, not the day you actually
-// travel on — for a genuine overnight stay that's the next calendar day. Same-day transit
-// legs (a country's last stop before a same-day flight, or a 0-night pass-through) have no
-// "next morning", so they display as-is.
-function travelDepartDate(leg, nextLeg){
-  if(leg.arrive !== leg.depart) return addDays(leg.depart, 1);
-  if(leg.nights === 0) return leg.depart;
-  if(!nextLeg) return leg.depart;
+// travel on — for a genuine overnight stay that's the next calendar day. Only a true
+// 0-night pass-through (arrive and depart the same day, no night actually spent) has no
+// "next morning", so it displays as-is; that's independent of whether there's a following
+// stop in this same country's list, since a country's last stop can still be an overnight
+// (e.g. an airport hotel) before flying out.
+function travelDepartDate(leg){
+  if(leg.arrive === leg.depart && leg.nights === 0) return leg.depart;
   return addDays(leg.depart, 1);
 }
 function fmtDuration(min){
@@ -2246,7 +2246,7 @@ function renderSpine(){
         <div class="leg-head">
           <div>
             <p class="leg-name">${leg.name}</p>
-            <p class="leg-dates">Arrive ${fmtDate(leg.arrive)} → Depart ${fmtDate(travelDepartDate(leg, nextLeg))}${leg.mapPin?` · <button class="pin-btn sm" type="button" data-url="${leg.mapPin}" data-label="${leg.name.replace(/"/g,'&quot;')}" aria-label="Open ${leg.name.replace(/"/g,'&quot;')} in Google Maps">📍</button>`:''}</p>
+            <p class="leg-dates">Arrive ${fmtDate(leg.arrive)} → Depart ${fmtDate(travelDepartDate(leg))}${leg.mapPin?` · <button class="pin-btn sm" type="button" data-url="${leg.mapPin}" data-label="${leg.name.replace(/"/g,'&quot;')}" aria-label="Open ${leg.name.replace(/"/g,'&quot;')} in Google Maps">📍</button>`:''}</p>
           </div>
           <span class="nights-badge">${leg.nights}n</span>
         </div>
